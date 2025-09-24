@@ -26,8 +26,16 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { AppStateProvider, useAppState } from './state/AppState';
+import OnboardingModal from './components/OnboardingModal';
+import LoginModal from './components/LoginModal';
+import ElderDashboard from './components/ElderDashboard';
+import FamilyDashboard from './components/FamilyDashboard';
 
-function App() {
+function AppContent() {
+  const app = useAppState();
+  const [isOnboardingOpen, setIsOnboardingOpen] = React.useState(false);
+  const [isLoginOpen, setIsLoginOpen] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const scrollToSection = (sectionId: string) => {
@@ -37,6 +45,33 @@ function App() {
     }
     setIsMobileMenuOpen(false); // Close mobile menu after navigation
   };
+
+  const handleGetStarted = () => {
+    setIsOnboardingOpen(true);
+  };
+
+  const handleLogin = () => {
+    setIsLoginOpen(true);
+  };
+
+  const handleOnboardingComplete = (audience: 'self' | 'lovedOne') => {
+    setIsOnboardingOpen(false);
+    app.setView(audience === 'self' ? 'elder' : 'family');
+  };
+
+  const handleLoginComplete = (audience: 'self' | 'lovedOne') => {
+    setIsLoginOpen(false);
+    app.setView(audience === 'self' ? 'elder' : 'family');
+  };
+
+  // Show appropriate dashboard if user is logged in
+  if (app.view === 'elder') {
+    return <ElderDashboard />;
+  }
+
+  if (app.view === 'family') {
+    return <FamilyDashboard />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F2EE]">
@@ -74,8 +109,17 @@ function App() {
                 FAQ
               </button>
             </div>
-            <div className="hidden md:flex items-center">
-              <button className="bg-[#F35E4A] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md">
+            <div className="hidden md:flex items-center space-x-4">
+              <button 
+                onClick={handleLogin}
+                className="text-gray-700 hover:text-[#F35E4A] transition-colors"
+              >
+                Login
+              </button>
+              <button 
+                onClick={handleGetStarted}
+                className="bg-[#F35E4A] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md"
+              >
                 Get Started
               </button>
             </div>
@@ -119,7 +163,10 @@ function App() {
                 >
                   FAQ
                 </button>
-                <button className="w-full bg-[#F35E4A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md mt-4">
+                <button 
+                  onClick={handleGetStarted}
+                  className="w-full bg-[#F35E4A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md mt-4"
+                >
                   Get Started
                 </button>
               </div>
@@ -140,10 +187,16 @@ function App() {
                 Always there with care, support, guidance and conversations that fit your graceful vibe with comfort, joy and peace.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <button className="bg-[#F35E4A] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#e54d37] transition-all shadow-lg hover:shadow-xl">
+                <button 
+                  onClick={handleGetStarted}
+                  className="bg-[#F35E4A] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#e54d37] transition-all shadow-lg hover:shadow-xl"
+                >
                   Get Started for Free
                 </button>
-                <button className="border-2 border-[#F35E4A] text-[#F35E4A] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#F35E4A] hover:text-white transition-all shadow-md hover:shadow-lg">
+                <button 
+                  onClick={handleGetStarted}
+                  className="border-2 border-[#F35E4A] text-[#F35E4A] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#F35E4A] hover:text-white transition-all shadow-md hover:shadow-lg"
+                >
                   Talk to Aasha Now
                 </button>
               </div>
@@ -589,7 +642,10 @@ function App() {
           </div>
 
           <div className="text-center mt-12">
-            <button className="bg-[#F35E4A] text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md hover:shadow-lg">
+            <button 
+              onClick={handleGetStarted}
+              className="bg-[#F35E4A] text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-[#e54d37] transition-all shadow-md hover:shadow-lg"
+            >
               Enroll for Free
             </button>
           </div>
@@ -772,11 +828,17 @@ function App() {
             Join thousands of people finding joy, families who have found companionship and joy with AASHA.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-[#F35E4A] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all flex items-center justify-center shadow-lg hover:shadow-xl">
+            <button 
+              onClick={handleGetStarted}
+              className="bg-white text-[#F35E4A] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all flex items-center justify-center shadow-lg hover:shadow-xl"
+            >
               Get Started for Free
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-[#F35E4A] transition-all shadow-md hover:shadow-lg">
+            <button 
+              onClick={handleGetStarted}
+              className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-[#F35E4A] transition-all shadow-md hover:shadow-lg"
+            >
               Talk to Aasha Now
             </button>
           </div>
@@ -837,6 +899,21 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onSelect={() => {}} // Handle audience selection if needed
+        onComplete={handleOnboardingComplete}
+      />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onComplete={handleLoginComplete}
+      />
     </div>
   );
 }
@@ -864,6 +941,15 @@ function FAQAccordion({ question, answer, defaultOpen = false }: { question: str
         </div>
       )}
     </div>
+  );
+}
+
+// Main App component with state provider
+function App() {
+  return (
+    <AppStateProvider>
+      <AppContent />
+    </AppStateProvider>
   );
 }
 
