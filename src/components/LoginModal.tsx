@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Heart, ChevronDown } from 'lucide-react';
+import { supabase } from '../supabaseClient'; // Add this import
+import { useAuth } from '../auth/AuthContext'; // Add this import
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ const countryCodes = [
   { code: '+44', country: 'UK', flag: '🇬🇧', digits: 10 },
   { code: '+61', country: 'AU', flag: '🇦🇺', digits: 9 },
   { code: '+49', country: 'DE', flag: '🇩🇪', digits: 11 },
+  { code: '+971', country: 'AE', flag: '🇦🇪', digits: 9 },
 ];
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onComplete }) => {
@@ -22,6 +25,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onComplete }) 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Test OTP bypass
+  const TEST_OTP_CODE = (import.meta.env as any).VITE_TEST_OTP_CODE || '123456';
+  const BYPASS_OTP = ((import.meta.env as any).VITE_BYPASS_OTP === '1');
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -35,16 +44,73 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onComplete }) 
     setStep('phone-verification');
   };
 
-  const handleSendOtp = () => {
-    if (phoneNumber.length >= 10) {
+  const handleSendOtp = async () => {
+    setError(null);
+    setLoading(true);
+
+    // Bypass path for testing
+    if (BYPASS_OTP) {
       setStep('otp-verification');
       setResendCooldown(30);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const fullPhoneNumber = countryCode + phoneNumber;
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone: fullPhoneNumber,
+        options: { channel: 'sms' }
+      });
+
+      if (otpError) {
+        setError(otpError.message);
+      } else {
+        setStep('otp-verification');
+        setResendCooldown(30);
+      }
+    } catch (err) {
+      console.error('Error sending OTP:', err);
+      setError('An unexpected error occurred.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
+    setError(null);
+    setLoading(true);
     if (otp.length === 6 && selectedAudience) {
-      onComplete(selectedAudience);
+      // Bypass path for testing
+      if (BYPASS_OTP) {
+        if (otp === TEST_OTP_CODE) {
+          onComplete(selectedAudience);
+        } else {
+          setError('Invalid verification code.');
+        }
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const fullPhoneNumber = countryCode + phoneNumber;
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          phone: fullPhoneNumber,
+          token: otp,
+          type: 'sms' as const,
+        });
+
+        if (verifyError) {
+          setError(verifyError.message);
+        } else {
+          onComplete(selectedAudience);
+        }
+      } catch (err) {
+        console.error('Error verifying OTP:', err);
+        setError('An unexpected error occurred.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -158,13 +224,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onComplete }) 
                   </button>
                   <button
                     onClick={handleSendOtp}
-                    disabled={!isPhoneValid}
+                    disabled={!isPhoneValid || loading}
                     className="flex-1 px-4 py-3 bg-[#F35E4A] text-white rounded-lg hover:bg-[#e54d37] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
-                    Send OTP
+                    {loading ? 'Sending...' : 'Send OTP'}
                   </button>
                 </div>
               </div>
+              {error && <p className="text-red-500 text-center mt-4">{error}</p>}
             </div>
           )}
 
@@ -207,13 +274,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onComplete }) 
                   </button>
                   <button
                     onClick={handleVerifyOtp}
-                    disabled={otp.length !== 6}
+                    disabled={otp.length !== 6 || loading}
                     className="flex-1 px-4 py-3 bg-[#F35E4A] text-white rounded-lg hover:bg-[#e54d37] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
-                    Verify & Login
+                    {loading ? 'Verifying...' : 'Verify & Login'}
                   </button>
                 </div>
               </div>
+              {error && <p className="text-red-500 text-center mt-4">{error}</p>}
             </div>
           )}
         </div>
